@@ -358,12 +358,14 @@ libresDeCuadrado n = take n ([x | x <- [1..], esLibreDeCuadrado x])
 --    masOcurrentes "Salamanca"         == "aaaa"
 -- ---------------------------------------------------------------------
 
--- elemMasOcurrente xs = 
+cantidadOcurrenciasMaximo :: (Eq a) => [a] -> Int
+cantidadOcurrenciasMaximo xs = maximum [length [a | a <- xs, a==x] | x <- xs]
 
--- cantidadOcurrenciasMaximo xs = 
+cantidadOcurrenciasElem :: (Eq a) => [a] -> a -> Int
+cantidadOcurrenciasElem xs y = length [x | x <- xs, x == y]
 
--- masOcurrentes :: [a] -> [a]
--- masOcurrentes xs = [elemMasOcurrente xs | i <- [1..(cantidadOcurrenciasMaximo xs)]]
+masOcurrentes :: (Eq a) => [a] -> [a]
+masOcurrentes xs = [x | x <- xs, cantidadOcurrenciasElem xs x == cantidadOcurrenciasMaximo xs]
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 21.1. Definir la función numDiv tal que (numDiv x) es el
@@ -372,7 +374,7 @@ libresDeCuadrado n = take n ([x | x <- [1..], esLibreDeCuadrado x])
 --    numDiv 12 == 6 
 -- ---------------------------------------------------------------------
 
-numDiv x = undefined
+numDiv x = length [n | n <- [1..x], mod x n == 0]
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 21.2. Definir la función entre tal que (entre a b c) es la
@@ -381,7 +383,7 @@ numDiv x = undefined
 --    entre 11 16 5 == [12, 16]
 -- ---------------------------------------------------------------------
 
-entre a b c = undefined
+entre a b c = [x | x <- [a..b], numDiv x >= c]
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 22. Definir la función conPos tal que (conPos xs) es la
@@ -390,7 +392,8 @@ entre a b c = undefined
 --    conPos [1,5,0,7] == [(1,0),(5,1),(0,2),(7,3)]
 -- ---------------------------------------------------------------------
 
-conPos xs = undefined
+conPos :: [a] -> [(a, Int)]
+conPos xs = [(xs !! i , i) | i <- [0..(length xs)-1]]
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 23. Definir la función tal que (pares cs) es la cadena
@@ -398,7 +401,7 @@ conPos xs = undefined
 --    pares "el cielo sobre berlin" == "e il or eln"
 -- ---------------------------------------------------------------------
 
-pares cs = undefined
+pares cs = [cs !! i | i <- [0..(length cs)-1], even i]
 
 
 -- ---------------------------------------------------------------------
