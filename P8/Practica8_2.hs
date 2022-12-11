@@ -126,9 +126,9 @@ aplicaT t f = listArray (bounds t) [f x | x <- (elems t)]
 -- ---------------------------------------------------------------------
 
 transformada :: Matriz a -> Matriz Bool -> (a -> b) -> (a -> b) -> Matriz b
-transformada a b f g = array (bounds a) [((i,j), t i j) | i <- [1..f], j <- [1..c]]
+transformada a b f g = array (bounds a) [((i,j), t i j) | i <- [1..n], j <- [1..m]]
     where
-        (f,c) = snd (bounds a)
+        (n,m) = snd (bounds a)
         t i j = if (b!(i,j)) then (f (a!(i,j))) else (g (a!(i,j)))
 
 -- ---------------------------------------------------------------------
@@ -144,7 +144,11 @@ transformada a b f g = array (bounds a) [((i,j), t i j) | i <- [1..f], j <- [1..
 -- ---------------------------------------------------------------------
 
 vectorEstocastico :: Vector Float -> Bool
-vectorEstocastico v = undefined
+vectorEstocastico v = todosPositivos && sumanUno
+    where
+        todosPositivos = and [x >= 0 | x <- xs]
+        sumanUno = sum [x | x <- xs] == 1
+        xs = elems v
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 6.2. Una matriz se denomina estocástica si sus columnas
@@ -159,7 +163,10 @@ vectorEstocastico v = undefined
 -- ---------------------------------------------------------------------
 
 matrizEstocastica :: Matriz Float -> Bool        
-matrizEstocastica p = undefined
+matrizEstocastica p = and [vectorEstocastico v | v <- cols]
+    where
+        (m,n) = snd (bounds p)
+        cols = [listArray (1,m) [p!(i,j) | i <- [1..m]] | j <- [1..n]]
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 7. Definir la función 
@@ -177,7 +184,26 @@ matrizEstocastica p = undefined
 -- ---------------------------------------------------------------------
 
 maximos :: Matriz Int -> [Int]
-maximos p = undefined
+maximos p = [p!(i,j) | i <- [1..m], j <- [1..n], esMaxLocal p i j]
+    where
+        (m,n) = snd (bounds p)
+        esMaxLocal p i j
+                    | (i,j) == (1,1)    = actual > maximum [elemDerecha i j, elemAbajo i j]
+                    | (i,j) == (m,n)    = actual > maximum [elemIzquierda i j, elemArriba i j]
+                    | (i,j) == (1,n)    = actual > maximum [elemIzquierda i j, elemAbajo i j]
+                    | (i,j) == (m,1)    = actual > maximum [elemArriba i j, elemDerecha i j]
+                    | i == 1            = actual > maximum [elemIzquierda i j, elemAbajo i j, elemDerecha i j]
+                    | j == 1            = actual > maximum [elemArriba i j, elemDerecha i j, elemAbajo i j]
+                    | i == m            = actual > maximum [elemArriba i j, elemDerecha i j, elemIzquierda i j]
+                    | j == n            = actual > maximum [elemArriba i j, elemAbajo i j, elemIzquierda i j]
+                    | otherwise         = actual > maximum [elemAbajo i j, elemArriba i j, elemDerecha i j, elemIzquierda i j]
+                    where
+                        (m,n) = snd (bounds p)
+                        actual = p!(i,j)
+                        elemDerecha i j = p!(i,j+1)
+                        elemIzquierda i j = p!(i,j-1)
+                        elemArriba i j = p!(i-1,j)
+                        elemAbajo i j = p!(i+1,j)
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 8. Definir la función 
@@ -193,7 +219,26 @@ maximos p = undefined
 -- ---------------------------------------------------------------------        
 
 algunMenor :: Matriz Int -> [Int]
-algunMenor p = undefined
+algunMenor p = [p!(i,j) | i <- [1..m], j <- [1..n], noEsMinLocal p i j]
+    where
+        (m,n) = snd (bounds p)
+        noEsMinLocal p i j
+                    | (i,j) == (1,1)    = actual > minimum [elemDerecha i j, elemAbajo i j]
+                    | (i,j) == (m,n)    = actual > minimum [elemIzquierda i j, elemArriba i j]
+                    | (i,j) == (1,n)    = actual > minimum [elemIzquierda i j, elemAbajo i j]
+                    | (i,j) == (m,1)    = actual > minimum [elemArriba i j, elemDerecha i j]
+                    | i == 1            = actual > minimum [elemIzquierda i j, elemAbajo i j, elemDerecha i j]
+                    | j == 1            = actual > minimum [elemArriba i j, elemDerecha i j, elemAbajo i j]
+                    | i == m            = actual > minimum [elemArriba i j, elemDerecha i j, elemIzquierda i j]
+                    | j == n            = actual > minimum [elemArriba i j, elemAbajo i j, elemIzquierda i j]
+                    | otherwise         = actual > minimum [elemAbajo i j, elemArriba i j, elemDerecha i j, elemIzquierda i j]
+                    where
+                        (m,n) = snd (bounds p)
+                        actual = p!(i,j)
+                        elemDerecha i j = p!(i,j+1)
+                        elemIzquierda i j = p!(i,j-1)
+                        elemArriba i j = p!(i-1,j)
+                        elemAbajo i j = p!(i+1,j)
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 9.1. Definir la función
@@ -212,7 +257,14 @@ algunMenor p = undefined
 --    proporcional (listArray (1,3) [0,0,0]) v1    = False
 
 proporcional :: (Fractional a, Eq a) => Vector a -> Vector a -> Bool
-proporcional = undefined
+proporcional v1 v2 = length (nub listaK) == 1
+    where 
+        listaK = [k (v1!i) (v2!i) | i <- [1..n], (k (v1!i) (v2!i)) /= Nothing]
+        n = snd (bounds v1)
+        k x y
+            | x == 0            = Nothing
+            | y == 0            = Just 0
+            | otherwise         = Just (x/y)
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 9.2. Definir la función
@@ -231,7 +283,12 @@ proporcional = undefined
 -- ---------------------------------------------------------------------
 
 esAutovector :: (Fractional a, Eq a) => Vector a -> Matriz a -> Bool
-esAutovector v p = undefined
+esAutovector v p = proporcional v (producto v p)
+    where
+        (m,n) = snd (bounds p)
+        producto v p
+            | snd (bounds v) /= m   = error "Dimension incorrecta"
+            | otherwise             = listArray (1,n) [sum [(v!i)*(p!(i,j)) | i <- [1..m]] | j <- [1..n]]
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 9.3. Definir la función
@@ -248,7 +305,20 @@ esAutovector v p = undefined
 
 autovalorAsociado :: (Fractional a, Eq a) => 
                      Matriz a -> Vector a -> Maybe a
-autovalorAsociado p v = undefined
+autovalorAsociado p v
+    | esAutovector v p  = calcularAutovalor v p
+    | otherwise         = Nothing
+    where
+        (m,n) = snd (bounds p)
+        producto v p
+            | snd (bounds v) /= m   = error "Dimension incorrecta"
+            | otherwise             = listArray (1,n) [sum [(v!i)*(p!(i,j)) | i <- [1..m]] | j <- [1..n]]
+        k x y
+            | x == 0            = Nothing
+            | y == 0            = Just 0
+            | otherwise         = Just (x/y)
+        listaK v1 v2 = [k (v1!i) (v2!i) | i <- [1..n], (k (v1!i) (v2!i)) /= Nothing]
+        calcularAutovalor v p = head (listaK v (producto v p))
 
 -- ------------------------------------------------------------------
 -- Ejercicio 10. Definir la función
@@ -263,7 +333,30 @@ autovalorAsociado p v = undefined
 -- ------------------------------------------------------------------
 
 sumaVecinos :: Matriz Int -> Matriz Int
-sumaVecinos p = undefined
+sumaVecinos p = listArray (bounds p) [sum (vecinos p i j) | i <- [1..m], j <- [1..n]]
+    where
+        (m,n) = snd (bounds p)
+        vecinos p i j
+            | (i,j) == (1,1)    = [elemDerecha i j, elemAbajo i j, elemAbDer i j]
+            | (i,j) == (m,n)    = [elemIzquierda i j, elemArriba i j, elemArIzq i j]
+            | (i,j) == (1,n)    = [elemIzquierda i j, elemAbajo i j, elemAbIzq i j]
+            | (i,j) == (m,1)    = [elemArriba i j, elemDerecha i j, elemArDer i j]
+            | i == 1            = [elemIzquierda i j, elemAbajo i j, elemDerecha i j, elemAbDer i j, elemAbIzq i j]
+            | j == 1            = [elemArriba i j, elemDerecha i j, elemAbajo i j, elemAbDer i j, elemArDer i j]
+            | i == m            = [elemArriba i j, elemDerecha i j, elemIzquierda i j, elemArDer i j, elemArIzq i j]
+            | j == n            = [elemArriba i j, elemAbajo i j, elemIzquierda i j, elemAbIzq i j, elemArIzq i j]
+            | otherwise         = [elemAbajo i j, elemArriba i j, elemDerecha i j, elemIzquierda i j, elemAbDer i j, elemAbIzq i j, elemArIzq i j, elemArDer i j]
+            where
+                (m,n) = snd (bounds p)
+                actual = p!(i,j)
+                elemDerecha i j = p!(i,j+1)
+                elemIzquierda i j = p!(i,j-1)
+                elemArriba i j = p!(i-1,j)
+                elemAbajo i j = p!(i+1,j)
+                elemAbDer i j = p!(i+1,j+1)
+                elemArDer i j = p!(i-1,j+1)
+                elemAbIzq i j = p!(i+1,j-1)
+                elemArIzq i j = p!(i-1,j-1)
 
 -- ---------------------------------------------------------------------
 -- Ejercicio 11.1. Una matriz tridiagonal es aquella en la que sólo hay
@@ -287,8 +380,8 @@ sumaVecinos p = undefined
 --    ( 0 0 0 4 5 5 ... 0  0  )
 --    ( 0 0 0 0 5 6 ... 0  0  )
 --    ( ..................... )
---    ( 0 0 0 0 0 0 ... n  n  )
---    ( 0 0 0 0 0 0 ... n n+1 )
+--    ( 0 0 0 0 0 0 ...n-1 n-1)
+--    ( 0 0 0 0 0 0 ...n-1 n  )
 -- Por ejemplo,
 --    ghci> creaTridiagonal 4
 --    array ((1,1),(4,4)) [((1,1),1),((1,2),1),((1,3),0),((1,4),0),
@@ -298,7 +391,13 @@ sumaVecinos p = undefined
 -- ----------------------------------------------------------------------------
 
 creaTridiagonal :: Int -> Matriz Int
-creaTridiagonal n = undefined
+creaTridiagonal n = array ((1,1),(n,n)) [((i,j), elem i j) | i <- [1..n], j <- [1..n]]
+    where
+        elem i j
+            | i == j        = i
+            | i == (j+1)    = i-1
+            | j == (i+1)    = j-1
+            | otherwise     = 0
 
 -- ----------------------------------------------------------------------------
 -- Ejercicio 11.2. Definir la función 
@@ -310,4 +409,9 @@ creaTridiagonal n = undefined
 -- ----------------------------------------------------------------------------
 
 esTridiagonal :: Matriz Int -> Bool
-esTridiagonal p = undefined
+esTridiagonal p
+    | m /= n    = error "Matriz no cuadrada"
+    | otherwise = and [p!(i,j) == (q n)!(i,j) | i <- [1..n], j <- [1..n]]
+    where
+        (m,n) = snd (bounds p)
+        q n = creaTridiagonal n
